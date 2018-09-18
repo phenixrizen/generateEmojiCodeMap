@@ -13,7 +13,7 @@ import (
 	"text/template"
 )
 
-const gemojiDBJsonURL = "https://raw.githubusercontent.com/github/gemoji/master/db/emoji.json"
+const gemojiDBJsonURL = "https://raw.githubusercontent.com/phenixrizen/generateEmojiCodeMap/master/emoji.json"
 
 type GemojiEmoji struct {
 	Aliases     []string `json:"aliases"`
