@@ -1,13 +1,12 @@
 generateEmojiCodeMap
 ====================
 
-golangのemojiパッケージのCodeMap生成用ツール。
-
+forked from: https://github.com/kyokomi/generateEmojiCodeMap 
 
 ## Install
 
 ```bash
-$ go get github.com/kyokomi/generateEmojiCodeMap
+$ go get github.com/phenixrizen/generateEmojiCodeMap
 ```
 
 ## Usage

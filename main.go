@@ -1,16 +1,16 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
+	"flag"
 	"fmt"
+	"go/format"
 	"io/ioutil"
 	"log"
-	"os"
-	"encoding/json"
-	"text/template"
-	"bytes"
-	"go/format"
-	"flag"
 	"net/http"
+	"os"
+	"text/template"
 )
 
 const gemojiDBJsonURL = "https://raw.githubusercontent.com/github/gemoji/master/db/emoji.json"
@@ -31,12 +31,12 @@ const templateMapCode = `
 package {{.PkgName}}
 
 // NOTE: THIS FILE WAS PRODUCED BY THE
-// EMOJICODEMAP CODE GENERATION TOOL (github.com/kyokomi/generateEmojiCodeMap)
+// EMOJICODEMAP CODE GENERATION TOOL (github.com/phenixrizen/generateEmojiCodeMap)
 // DO NOT EDIT
 
 // Mapping from character to concrete escape code.
 var emojiCodeMap = map[string]string{
-	{{range $key, $val := .CodeMap}}":{{$key}}:": {{$val}},
+	{{range $key, $val := .CodeMap}}"{{$key}}": "{{$val}}",
 {{end}}
 }
 `
@@ -54,7 +54,7 @@ func init() {
 
 func main() {
 
-	codeMap, err := generateJson(pkgName)
+	codeMap, err := generateFromJSON(pkgName)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -72,7 +72,7 @@ func main() {
 	}
 }
 
-func generateJson(pkgName string) ([]byte, error) {
+func generateFromJSON(pkgName string) ([]byte, error) {
 
 	// Read Emoji file
 
@@ -94,9 +94,7 @@ func generateJson(pkgName string) ([]byte, error) {
 
 	emojiCodeMap := make(map[string]string)
 	for _, gemoji := range gs {
-		for _, a := range gemoji.Aliases {
-			emojiCodeMap[a] = fmt.Sprintf("%+q", gemoji.Emoji)
-		}
+		emojiCodeMap[gemoji.Emoji] = gemoji.Description
 	}
 
 	// Template GenerateSource
