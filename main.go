@@ -9,7 +9,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"text/template"
+	"unicode/utf8"
 )
 
 const emojiDataURL = "https://raw.githubusercontent.com/phenixrizen/generateEmojiCodeMap/master/emoji-data.txt"
@@ -83,28 +85,30 @@ func generateFromData(pkgName string) ([]byte, error) {
 	}
 	defer res.Body.Close()
 
-	/*emojiFile, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}*/
-
 	var es []Emoji
 	scanner := bufio.NewScanner(res.Body)
 	for scanner.Scan() {
 		line := scanner.Text()
-		fmt.Println(line)
+		e := lineToEmoji(line)
+		es = append(es, e)
 	}
 
+	matchExp := ""
+
 	emojiCodeMap := make(map[string]string)
-	for _, e := range es {
+	for i, e := range es {
 		emojiCodeMap[e.Emoji] = e.Description
+		matchExp = matchExp + e.Match
+		if i != len(es)-1 {
+			matchExp = matchExp + "|"
+		}
 	}
 
 	// Template GenerateSource
 
 	var buf bytes.Buffer
 	t := template.Must(template.New("template").Parse(templateMapCode))
-	if err := t.Execute(&buf, TemplateData{pkgName, "", emojiCodeMap}); err != nil {
+	if err := t.Execute(&buf, TemplateData{pkgName, matchExp, emojiCodeMap}); err != nil {
 		return nil, err
 	}
 
@@ -119,6 +123,30 @@ func generateFromData(pkgName string) ([]byte, error) {
 	return fmtBytes, nil
 }
 
-func lineToEmoji(line string) *Emoji {
-	return nil
+func lineToEmoji(line string) Emoji {
+	e := Emoji{}
+
+	line = strings.ToLower(line)
+
+	// get match expr
+	matchStr := strings.Split(line, ";")[0]
+	matchAr := strings.Fields(matchStr)
+	match := ""
+	for _, m := range matchAr {
+		match = match + fmt.Sprintf("\\\\x{%s}", m)
+	}
+	e.Match = match
+
+	// get emoji
+	emojiStr := line[strings.Index(line, "#")+1:]
+	emojiAr := strings.Split(emojiStr, " ")
+	e.Emoji = emojiAr[1]
+
+	// get description
+	r, _ := utf8.DecodeRuneInString(e.Emoji)
+	rLength := len(e.Emoji)
+	idx := strings.IndexRune(emojiStr, r)
+	e.Description = emojiStr[idx+rLength:]
+
+	return e
 }
