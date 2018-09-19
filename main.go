@@ -14,6 +14,9 @@ import (
 	"unicode/utf8"
 )
 
+// original unicode data file: https://unicode.org/Public/emoji/11.0/emoji-test.txt
+// - processed to only include data lines
+// - cat emoji-data.txt | grep '^[0-9]'
 const emojiDataURL = "https://raw.githubusercontent.com/phenixrizen/generateEmojiCodeMap/master/emoji-data.txt"
 
 type TemplateData struct {
