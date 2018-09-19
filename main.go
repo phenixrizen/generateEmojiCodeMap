@@ -60,7 +60,7 @@ func init() {
 
 func main() {
 
-	codeMap, err := generateFromData(pkgName)
+	codeMapBytes, err := generateFromData(pkgName)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -73,7 +73,7 @@ func main() {
 	}
 	defer file.Close()
 
-	if _, err := file.Write(codeMap); err != nil {
+	if _, err := file.Write(codeMapBytes); err != nil {
 		log.Fatalln(err)
 	}
 }
