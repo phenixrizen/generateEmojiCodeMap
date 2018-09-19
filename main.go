@@ -1,30 +1,29 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"go/format"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"text/template"
 )
 
-const gemojiDBJsonURL = "https://raw.githubusercontent.com/phenixrizen/generateEmojiCodeMap/master/emoji.json"
-
-type GemojiEmoji struct {
-	Aliases     []string `json:"aliases"`
-	Description string   `json:"description"`
-	Emoji       string   `json:"emoji"`
-	Tags        []string `json:"tags"`
-}
+const emojiDataURL = "https://raw.githubusercontent.com/phenixrizen/generateEmojiCodeMap/master/emoji-data.txt"
 
 type TemplateData struct {
 	PkgName string
+	Pattern string
 	CodeMap map[string]string
+}
+
+type Emoji struct {
+	Description string `json:"description"`
+	Emoji       string `json:"emoji"`
+	Match       string `json:"match"`
 }
 
 const templateMapCode = `
@@ -33,6 +32,8 @@ package {{.PkgName}}
 // NOTE: THIS FILE WAS PRODUCED BY THE
 // EMOJICODEMAP CODE GENERATION TOOL (github.com/phenixrizen/generateEmojiCodeMap)
 // DO NOT EDIT
+
+const emojiPattern = "{{.Pattern}}"
 
 // Mapping from character to concrete escape code.
 var emojiCodeMap = map[string]string{
@@ -54,7 +55,7 @@ func init() {
 
 func main() {
 
-	codeMap, err := generateFromJSON(pkgName)
+	codeMap, err := generateFromData(pkgName)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -72,46 +73,52 @@ func main() {
 	}
 }
 
-func generateFromJSON(pkgName string) ([]byte, error) {
+func generateFromData(pkgName string) ([]byte, error) {
 
 	// Read Emoji file
 
-	res, err := http.Get(gemojiDBJsonURL)
+	res, err := http.Get(emojiDataURL)
 	if err != nil {
 		return nil, err
 	}
 	defer res.Body.Close()
 
-	emojiFile, err := ioutil.ReadAll(res.Body)
+	/*emojiFile, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
-	}
+	}*/
 
-	var gs []GemojiEmoji
-	if err := json.Unmarshal(emojiFile, &gs); err != nil {
-		return nil, err
+	var es []Emoji
+	scanner := bufio.NewScanner(res.Body)
+	for scanner.Scan() {
+		line := scanner.Text()
+		fmt.Println(line)
 	}
 
 	emojiCodeMap := make(map[string]string)
-	for _, gemoji := range gs {
-		emojiCodeMap[gemoji.Emoji] = gemoji.Description
+	for _, e := range es {
+		emojiCodeMap[e.Emoji] = e.Description
 	}
 
 	// Template GenerateSource
 
 	var buf bytes.Buffer
 	t := template.Must(template.New("template").Parse(templateMapCode))
-	if err := t.Execute(&buf, TemplateData{pkgName, emojiCodeMap}); err != nil {
+	if err := t.Execute(&buf, TemplateData{pkgName, "", emojiCodeMap}); err != nil {
 		return nil, err
 	}
 
 	// gofmt
 
-	bts, err := format.Source(buf.Bytes())
+	fmtBytes, err := format.Source(buf.Bytes())
 	if err != nil {
 		fmt.Println(string(buf.Bytes()))
 		return nil, fmt.Errorf("gofmt: %s", err)
 	}
 
-	return bts, nil
+	return fmtBytes, nil
+}
+
+func lineToEmoji(line string) *Emoji {
+	return nil
 }
